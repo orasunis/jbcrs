@@ -10,9 +10,9 @@ description = "A Library to support reading and writing of java class files."
 readme = "README.md"
 keywords = ["java", "class", "jvm", "bytecode"]
 categories = ["parser-implementations"]
-license = "MIT"
+license = "Unlicense"
 
-include = ["Cargo.toml", "src/**/*.rs", "README.md", "LICENSE-MIT"]
+include = ["Cargo.toml", "src/**/*.rs", "README.md", "UNLICENSE"]
 
 [dependencies]
 bitflags = "1.0.1"
