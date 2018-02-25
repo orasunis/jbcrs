@@ -2,6 +2,7 @@
 
 mod constpool;
 mod parser;
+mod writer;
 mod tree;
 
 pub use self::constpool::*;

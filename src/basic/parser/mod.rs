@@ -4,18 +4,14 @@ mod method;
 mod code;
 mod annotation;
 
-pub use super::constpool::*;
-pub use super::tree::*;
-pub use result::*;
-
+use result::*;
+use super::constpool::*;
+use super::tree::*;
 use self::class::*;
 use self::method::*;
 use self::code::*;
 use self::annotation::*;
 use self::decode::Decoder;
-
-/// The first 4 bytes of every java class file
-const MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
 
 /// Parses the class file, which is represented as a byte array.
 /// The constant pool and the class is returned, if no error occurred.

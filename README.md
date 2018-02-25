@@ -56,7 +56,7 @@ let (constant_pool, class): (basic::Pool, basic::Class) = basic::parse(bytes)
 println!("version: {}.{}", class.major_version, class.minor_version);
 
 // Access Flags can be printed human readable
-println!("access: {}", class.access_flags);
+println!("access: {:?}", class.access_flags);
 
 // Printing the name requires us to use the constant pool.
 println!("name: {}", constant_pool.get_class_name(class.name).expect("could not get class name"));

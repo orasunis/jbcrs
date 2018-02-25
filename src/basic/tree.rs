@@ -2,6 +2,9 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+/// The first 4 bytes of every java class file
+pub const MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
+
 /// A java class file.
 #[derive(Debug)]
 pub struct Class {
