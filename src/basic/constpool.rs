@@ -180,6 +180,17 @@ impl Pool {
         }
     }
 
+    /// Pushes a new UTF-8 item on the pool and returns an index to it.
+    pub fn push_utf8(&mut self, content: String) -> Result<u16> {
+        self.push(Item::UTF8(content))
+    }
+
+    /// Pushes a new class item on the pool and returns an index to it.
+    pub fn push_class(&mut self, name: String) -> Result<u16> {
+        let name_index = self.push_utf8(name)?;
+        self.push(Item::Class(name_index))
+    }
+
     /// Returns a Vector containing pointers to Items.
     ///
     /// The *Nones* inside the items Vec are filtered.
