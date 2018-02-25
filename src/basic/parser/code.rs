@@ -67,7 +67,6 @@ fn parse_instruction(decoder: &mut Decoder, at: u32) -> Result<(u32, Instruction
     let prev_cursor = decoder.cursor();
     let op_code = decoder.read_u8()?;
 
-    println!("op_code = {}", op_code);
     let insn = match op_code {
         0x00 => NOP,
         0x01 => AConstNull,

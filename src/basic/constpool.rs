@@ -144,7 +144,6 @@ impl Pool {
     }
 
     /// Returns a Vector containing pointers to Items.
-    ///
     /// The *Nones* inside the items Vec are filtered.
     pub fn get_items(&self) -> Vec<&Item> {
         let mut items = Vec::with_capacity(self.items.len());
