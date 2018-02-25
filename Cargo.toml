@@ -3,6 +3,9 @@ name = "jbcrs"
 version = "0.1.0"
 authors = ["orasunis"]
 
+repository = "https://github.com/orasunis/jbcrs"
+documentation = "https://docs.rs/jbcrs"
+
 description = "A Library to support reading and writing of java class files."
 readme = "README.md"
 keywords = ["java", "class", "jvm", "bytecode"]
