@@ -2,7 +2,7 @@ use super::*;
 
 /// Reads the next few parameter annotations.
 pub fn parse_parameter_annotations(decoder: &mut Decoder) -> Result<Vec<Vec<Annotation>>> {
-    let count = decoder.read_u16()?;
+    let count = decoder.read_u8()?;
     let mut annotations = Vec::with_capacity(count as usize);
     for _ in 0..count {
         annotations.push(parse_annotations(decoder)?);
