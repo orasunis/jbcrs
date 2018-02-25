@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use super::*;
 use self::decode::Decoder;
@@ -9,7 +9,7 @@ pub fn parse_code(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Attribu
     let max_locals = decoder.read_u16()?;
 
     let code_length = decoder.read_u32()?;
-    let mut instructions = HashMap::new();
+    let mut instructions = BTreeMap::new();
 
     // Read the instructions
     // Using an extra block so we don't have to enable NLL on nightly

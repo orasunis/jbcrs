@@ -1,6 +1,6 @@
 //! The tree package provides the basic structure of a basic class file
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 /// The first 4 bytes of every java class file
 pub const MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
@@ -48,7 +48,7 @@ pub enum Attribute {
     Code {
         max_stack: u16,
         max_locals: u16,
-        instructions: HashMap<u32, Instruction>,
+        instructions: BTreeMap<u32, Instruction>,
         exceptions: Vec<Exception>,
         attributes: Vec<Attribute>,
     },
