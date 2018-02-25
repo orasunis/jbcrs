@@ -1,6 +1,6 @@
-# JBcRs [![Latest Version]][crates.io]
-[crates.io]: https://crates.io/crates/jbcrs
-**JBcRs is a Library to support reading and writing of java class files.**
+[![](http://meritbadge.herokuapp.com/jbcrs)](https://crates.io/crates/jbcrs) [![](https://docs.rs/jbcrs/badge.svg)](https://docs.rs/jbcrs)
+# JBcRs
+**JBcRs is a Library, written in rust, to support reading and writing of java class files.**
 
 This library is not close from being finished,
 but certain features have already been implemented:
