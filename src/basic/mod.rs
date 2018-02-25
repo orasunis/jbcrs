@@ -7,4 +7,5 @@ mod tree;
 
 pub use self::constpool::*;
 pub use self::parser::*;
+pub use self::writer::*;
 pub use self::tree::*;

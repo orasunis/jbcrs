@@ -99,11 +99,11 @@ impl<'a> Decoder<'a> {
     }
 
     pub fn read_f32(&mut self) -> Result<f32> {
-        Ok(f32::from_bits(self.read_u32()?))
+        Ok(BigEndian::read_f32(self.read_bytes(4)?))
     }
 
     pub fn read_f64(&mut self) -> Result<f64> {
-        Ok(f64::from_bits(self.read_u64()?))
+        Ok(BigEndian::read_f64(self.read_bytes(8)?))
     }
 
     /// Decodes a modified UTF-8 string.

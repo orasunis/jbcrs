@@ -137,12 +137,12 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
             }
             16 => Item::MethodType(decoder.read_u16()?),
             18 => {
-                let bootstrap_method_attribute_index = decoder.read_u16()?;
-                let name_and_type_index = decoder.read_u16()?;
+                let bootstrap_method = decoder.read_u16()?;
+                let name_and_type = decoder.read_u16()?;
 
                 Item::InvokeDynamic {
-                    bootstrap_method_attribute: bootstrap_method_attribute_index,
-                    name_and_type: name_and_type_index,
+                    bootstrap_method,
+                    name_and_type,
                 }
             }
             19 => Item::Module(decoder.read_u16()?),

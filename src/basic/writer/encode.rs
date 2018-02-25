@@ -81,6 +81,20 @@ impl Encoder {
         self.write_bytes(&buf);
     }
 
+    /// Writes a f32 to the buffer
+    pub fn write_f32(&mut self, u: f32) {
+        let mut buf = [0; 4];
+        BigEndian::write_f32(&mut buf, u);
+        self.write_bytes(&buf);
+    }
+
+    /// Writes a f64 to the buffer
+    pub fn write_f64(&mut self, u: f64) {
+        let mut buf = [0; 8];
+        BigEndian::write_f64(&mut buf, u);
+        self.write_bytes(&buf);
+    }
+
     /// Writes a modified UTF-8 string to the buffer
     pub fn write_str(&mut self, s: &str) {
         for c in s.chars() {
@@ -90,7 +104,7 @@ impl Encoder {
             } else if u < 0x0800 {
                 self.buf
                     .extend_from_slice(&[0xC0 | ((u >> 6) & 0x1F) as u8, 0x80 | (u & 0x3F) as u8]);
-            } else if u < 0x10000 {
+            } else if u < 0x1_0000 {
                 self.buf.extend_from_slice(&[
                     0xE0 | ((u >> 12) & 0x0F) as u8,
                     0x80 | ((u >> 6) & 0x3F) as u8,

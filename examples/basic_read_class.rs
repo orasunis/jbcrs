@@ -28,10 +28,7 @@ fn main() {
         println!("    #{}: {:?}", index, item);
 
         // double and long items are 2 items sized
-        index += match *item {
-            Item::Double(_) | Item::Long(_) => 2,
-            _ => 1,
-        };
+        index += if item.is_double() { 2 } else { 1 };
     }
 
     // Class derives Debug,

@@ -79,7 +79,7 @@ pub enum Item {
     /// and specifies information regarding the bootstrap method.
     InvokeDynamic {
         /// The index to an entry of the BootstrapMethods attribute of the class file.
-        bootstrap_method_attribute: u16,
+        bootstrap_method: u16,
         /// The index to an `Item::NameAndType { .. }`.
         name_and_type: u16,
     },
@@ -92,6 +92,16 @@ pub enum Item {
     /// with a valid package name encoded in internal form.
     /// The class must have the MODULE flag set.
     Package(u16),
+}
+
+impl Item {
+    /// Returns true if self consumes two spaces in the constant pool.
+    pub fn is_double(&self) -> bool {
+        match *self {
+            Item::Double(_) | Item::Long(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -128,6 +138,12 @@ impl Pool {
         }
     }
 
+    /// Returns the encoded length of the table.
+    /// Long and double items are included.
+    pub fn encoded_length(&self) -> u16 {
+        self.items.len() as u16 + 1
+    }
+
     /// Pushes a new item on the pool, returning the index to it.
     /// If the pool size exceeds u16::max_value() an error will be returned.
     /// We won't check for duplicates here since this method should be used when reading
@@ -138,6 +154,27 @@ impl Pool {
             Err(Error::CPTooLarge)
         } else {
             self.items.push(item);
+
+            Ok(self.items.len() as u16)
+        }
+    }
+
+    /// Pushes a new item on the pool, returning the index to it.
+    /// If the pool size exceeds u16::max_value() an error will be returned.
+    /// If duplicates are found, the duplicate will be used and no item added.
+    pub fn push(&mut self, item: Item) -> Result<u16> {
+        for (index, it) in self.items.iter().enumerate() {
+            if let Some(ref it) = *it {
+                if *it == item {
+                    return Ok(index as u16 + 1);
+                }
+            }
+        }
+
+        if self.items.len() == u16::max_value() as usize - 1 {
+            Err(Error::CPTooLarge)
+        } else {
+            self.items.push(Some(item));
 
             Ok(self.items.len() as u16)
         }
@@ -163,9 +200,9 @@ impl Pool {
     pub fn get(&self, index: u16) -> Result<&Item> {
         self.items
             .get(index as usize - 1)
-            .ok_or_else(|| Error::InvalidCPItem(index))?
+            .ok_or(Error::InvalidCPItem(index))?
             .as_ref()
-            .ok_or_else(|| Error::InvalidCPItem(index))
+            .ok_or(Error::InvalidCPItem(index))
     }
 
     /// Returns a cloned String at a specified index.
