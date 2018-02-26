@@ -120,7 +120,7 @@ impl<'a> Decoder<'a> {
                 // single byte
                 i -= 1;
                 r1
-            } else if r1 >= 0xC0 && r1 < 0xE0 && i >= 1 {
+            } else if r1 >= 0xC0 && r1 < 0xE0 && i >= 2 {
                 // 2 bytes
                 i -= 2;
                 let r2 = u32::from(self.read_u8()?);
@@ -130,8 +130,8 @@ impl<'a> Decoder<'a> {
                 let r2 = u32::from(self.read_u8()?);
                 let r3 = u32::from(self.read_u8()?);
                 if r1 == 0xED && r2 >= 0xA0 && r2 <= 0xAF {
-                    if i >= 6 {
-                        i -= 6;
+                    if i >= 3 {
+                        i -= 3;
 
                         self.read_u8()?;
                         let r5 = u32::from(self.read_u8()?);

@@ -243,7 +243,7 @@ fn parse_instruction(decoder: &mut Decoder, at: u32) -> Result<(u32, Instruction
         0xA9 => Ret(u16::from(decoder.read_u8()?)),
         0xAA => {
             // skip padding
-            decoder.skip(3 - (prev_cursor & 3))?;
+            decoder.skip(3 - (at & 3) as usize)?;
             let default = decoder.read_i32()?;
             let low = decoder.read_i32()?;
             let high = decoder.read_i32()?;
@@ -262,7 +262,7 @@ fn parse_instruction(decoder: &mut Decoder, at: u32) -> Result<(u32, Instruction
         }
         0xAB => {
             // skip padding
-            decoder.skip(3 - (prev_cursor & 3))?;
+            decoder.skip(3 - (at & 3) as usize)?;
             let default = decoder.read_i32()?;
 
             let count = decoder.read_u32()?;
@@ -355,5 +355,5 @@ fn parse_instruction(decoder: &mut Decoder, at: u32) -> Result<(u32, Instruction
         _ => return Err(Error::InvalidInstruction { op_code, at }),
     };
 
-    Ok((at + decoder.cursor() as u32 - prev_cursor as u32, insn))
+    Ok(((at as usize + decoder.cursor() - prev_cursor) as u32, insn))
 }

@@ -69,7 +69,8 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
     let size = decoder.read_u16()?;
     let mut pool = Pool::with_capacity(size);
 
-    for index in 1..size {
+    let mut index = 1;
+    while index < size {
         let tag = decoder.read_u8()?;
 
         // match a tag and read the additional information
@@ -153,9 +154,12 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
 
         pool.push_with_dup(Some(item))?;
 
-        // long and double values take two spaces
+        index += 1;
+
+        // long and double constants take two spaces
         if tag == 5 || tag == 6 {
             pool.push_with_dup(None)?;
+            index += 1;
         }
     }
 

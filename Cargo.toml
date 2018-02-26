@@ -1,6 +1,6 @@
 [package]
 name = "jbcrs"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["orasunis"]
 
 repository = "https://github.com/orasunis/jbcrs"
