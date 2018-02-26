@@ -1,4 +1,4 @@
-[![](http://meritbadge.herokuapp.com/jbcrs)](https://crates.io/crates/jbcrs) [![](https://docs.rs/jbcrs/badge.svg)](https://docs.rs/jbcrs)
+[![](https://img.shields.io/crates/v/jbcrs.svg)](https://crates.io/crates/jbcrs) [![](https://docs.rs/jbcrs/badge.svg)](https://docs.rs/jbcrs)
 # JBcRs
 **JBcRs is a Library, written in rust, to support reading and writing of java class files.**
 
