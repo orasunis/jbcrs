@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::cmp::{Eq, PartialEq};
-use std::ptr;
 use result::*;
 
 /// A constant pool item
@@ -96,6 +95,16 @@ pub enum Item {
     /// with a valid package name encoded in internal form.
     /// The class must have the MODULE flag set.
     Package(u16),
+}
+
+impl Item {
+    /// Returns true if this item takes up two spaces, false otherwise.
+    fn is_double(&self) -> bool {
+        match *self {
+            Item::Long(_) | Item::Double(_) => true,
+            _ => false,
+        }
+    }
 }
 
 // Implementing `Hash` and `Eq` manually (sorry for this awful mess of code),
@@ -201,8 +210,9 @@ impl PartialEq for Item {
             (&Item::Float(f1), &Item::Float(f2)) => f1.to_bits() == f2.to_bits(),
             (&Item::Long(i1), &Item::Long(i2)) => i1 == i2,
             (&Item::Double(f1), &Item::Double(f2)) => f1.to_bits() == f2.to_bits(),
-            (&Item::Class(i1), &Item::Class(i2)) => i1 == i2,
-            (&Item::String(i1), &Item::String(i2)) => i1 == i2,
+            (&Item::Class(i1), &Item::Class(i2)) | (&Item::String(i1), &Item::String(i2)) => {
+                i1 == i2
+            }
             (
                 &Item::FieldRef {
                     class: class1,
@@ -212,8 +222,8 @@ impl PartialEq for Item {
                     class: class2,
                     name_and_type: nat2,
                 },
-            ) => class1 == class2 && nat1 == nat2,
-            (
+            )
+            | (
                 &Item::MethodRef {
                     class: class1,
                     name_and_type: nat1,
@@ -222,8 +232,8 @@ impl PartialEq for Item {
                     class: class2,
                     name_and_type: nat2,
                 },
-            ) => class1 == class2 && nat1 == nat2,
-            (
+            )
+            | (
                 &Item::InterfaceMethodRef {
                     class: class1,
                     name_and_type: nat1,
@@ -253,7 +263,6 @@ impl PartialEq for Item {
                     index: index2,
                 },
             ) => kind1 == kind2 && index1 == index2,
-            (&Item::MethodType(index1), &Item::MethodType(index2)) => index1 == index2,
             (
                 &Item::InvokeDynamic {
                     bootstrap_method_attribute: bma1,
@@ -264,8 +273,9 @@ impl PartialEq for Item {
                     name_and_type: nat2,
                 },
             ) => bma1 == bma2 && nat1 == nat2,
-            (&Item::Module(index1), &Item::Module(index2)) => index1 == index2,
-            (&Item::Package(index1), &Item::Package(index2)) => index1 == index2,
+            (&Item::Package(index1), &Item::Package(index2))
+            | (&Item::Module(index1), &Item::Module(index2))
+            | (&Item::MethodType(index1), &Item::MethodType(index2)) => index1 == index2,
 
             _ => false,
         }
@@ -291,7 +301,7 @@ pub enum ReferenceKind {
 /// It is used to have fast lookup for entries and small files.
 /// Removing or modifying items is not allowed
 /// to respect already 'used' indices
-/// or to prevent rehashing of the underlying HashMap.
+/// or to prevent rehashing of the underlying `HashMap`.
 #[derive(Default)]
 pub struct Pool {
     /// The count of all items
@@ -300,7 +310,7 @@ pub struct Pool {
     /// The constant pool items by index.
     /// A Option is used, since long and double values take two spaces
     /// and we still want to access items by index with O(1), not O(n).
-    by_index: Vec<Option<*const Item>>,
+    by_index: Vec<Option<Item>>,
 
     /// The constant pool items by reference to acquire their index.
     by_entry: HashMap<*const Item, u16>,
@@ -328,6 +338,11 @@ impl Pool {
         self.len + 1
     }
 
+    /// Returns true if the pool is empty, false otherwise.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Returns a Vector containing pointers to Items.
     /// The *Nones* inside the items Vec are filtered.
     pub fn get_items(&self) -> Vec<&Item> {
@@ -335,9 +350,7 @@ impl Pool {
 
         for opt_item in &self.by_index {
             if let Some(ref item) = *opt_item {
-                unsafe {
-                    items.push(&**item);
-                }
+                items.push(item);
             }
         }
 
@@ -347,15 +360,11 @@ impl Pool {
     /// Returns the item at a specified index.
     /// If the index is 0 or greater than the size of the pool, an error is returned.
     pub fn get(&self, index: u16) -> Result<&Item> {
-        let item: &Option<*const Item> = self.by_index
+        self.by_index
             .get(index as usize - 1)
-            .ok_or(Error::InvalidCPItem(index))?;
-
-        if let Some(item) = *item {
-            unsafe { Ok(&*item) }
-        } else {
-            Err(Error::InvalidCPItem(index))
-        }
+            .ok_or_else(|| Error::InvalidCPItem(index))?
+            .as_ref()
+            .ok_or_else(|| Error::InvalidCPItem(index))
     }
 
     /// Returns a cloned String at a specified index.
@@ -390,7 +399,7 @@ impl Pool {
         }
     }
 
-    /// Pushes an item on the Pool.
+    /// Pushes an item on the pool.
     pub fn push(&mut self, item: Item) -> Result<u16> {
         if self.len == u16::max_value() {
             return Err(Error::CPTooLarge);
@@ -400,20 +409,19 @@ impl Pool {
             return Ok(*index + 1);
         }
 
-        self.by_index.push(Some(&item as *const Item));
+        let double = item.is_double();
         self.by_entry.insert(&item as *const Item, self.len);
+        self.by_index.push(Some(item));
         self.len += 1;
 
-        match item {
-            Item::Long(_) | Item::Double(_) => {
-                // long and double take an additional space
-                self.by_index.push(None);
-                self.len += 1;
+        if double {
+            // long and double take an additional space
+            self.by_index.push(None);
+            self.len += 1;
 
-                Ok(self.len - 1)
-            }
-
-            _ => Ok(self.len),
+            Ok(self.len - 1)
+        } else {
+            Ok(self.len)
         }
     }
 }
@@ -425,10 +433,10 @@ impl Clone for Pool {
 
         for (index, item) in self.by_index.iter().enumerate() {
             // Clones the item if it is Some and pushes a pointer to it on the Vec and HashMap.
-            if let Some(item) = *item {
-                let cloned_item = item.clone() as *const Item;
+            if let Some(ref item) = *item {
+                let cloned_item = item.clone();
+                by_entry.insert(&cloned_item as *const Item, index as u16);
                 by_index.push(Some(cloned_item));
-                by_entry.insert(cloned_item, index as u16);
             } else {
                 by_index.push(None)
             }
@@ -438,18 +446,6 @@ impl Clone for Pool {
             len: self.len,
             by_index,
             by_entry,
-        }
-    }
-}
-
-// Implementing Drop to allow dropping the raw pointers.
-impl Drop for Pool {
-    fn drop(&mut self) {
-        // iterate through all items and drop them
-        for item in &self.by_index {
-            if let Some(item) = *item {
-                unsafe { ptr::drop_in_place(item as *mut Item) }
-            }
         }
     }
 }
