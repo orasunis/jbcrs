@@ -367,7 +367,7 @@ impl Pool {
             .ok_or_else(|| Error::InvalidCPItem(index))?;
 
         if let Some(item) = *item {
-            unsafe { Ok(&*item) }
+            Ok(unsafe { &*item })
         } else {
             Err(Error::InvalidCPItem(index))
         }
@@ -435,12 +435,12 @@ impl Pool {
 impl Clone for Pool {
     fn clone(&self) -> Pool {
         let mut by_index = Vec::with_capacity(self.len as usize);
-        let mut by_entry: HashMap<Item, u16> = HashMap::with_capacity(self.len as usize);
+        let mut by_entry = HashMap::with_capacity(self.len as usize);
 
         for (index, item) in self.by_index.iter().enumerate() {
             // Clones the item if it is Some and pushes a pointer to it on the Vec and HashMap.
             if let Some(ref item) = *item {
-                let cloned_item = unsafe { (&**item) }.clone();
+                let cloned_item = unsafe { &**item }.clone();
                 by_index.push(Some(&cloned_item as *const Item));
                 by_entry.insert(cloned_item, index as u16);
             } else {
