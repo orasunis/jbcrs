@@ -142,12 +142,12 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
             }
             16 => Item::MethodType(decoder.read_u16()?),
             18 => {
-                let bootstrap_method_attribute_index = decoder.read_u16()?;
-                let name_and_type_index = decoder.read_u16()?;
+                let bootstrap_method_attribute = decoder.read_u16()?;
+                let name_and_type = decoder.read_u16()?;
 
                 Item::InvokeDynamic {
-                    bootstrap_method_attribute: bootstrap_method_attribute_index,
-                    name_and_type: name_and_type_index,
+                    bootstrap_method_attribute,
+                    name_and_type,
                 }
             }
             19 => Item::Module(decoder.read_u16()?),
@@ -156,15 +156,8 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
             _ => return Err(Error::InvalidCPItem(index)),
         };
 
-        pool.push_with_dup(Some(item))?;
-
+        pool.push(item)?;
         index += 1;
-
-        // long and double constants take two spaces
-        if tag == 5 || tag == 6 {
-            pool.push_with_dup(None)?;
-            index += 1;
-        }
     }
 
     Ok(pool)
