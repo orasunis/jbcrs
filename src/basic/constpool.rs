@@ -310,10 +310,10 @@ pub struct Pool {
     /// The constant pool items by index.
     /// A Option is used, since long and double values take two spaces
     /// and we still want to access items by index with O(1), not O(n).
-    by_index: Vec<Option<Item>>,
+    by_index: Vec<Option<*const Item>>,
 
     /// The constant pool items by reference to acquire their index.
-    by_entry: HashMap<*const Item, u16>,
+    by_entry: HashMap<Item, u16>,
 }
 
 impl Pool {
@@ -350,7 +350,9 @@ impl Pool {
 
         for opt_item in &self.by_index {
             if let Some(ref item) = *opt_item {
-                items.push(item);
+                unsafe {
+                    items.push(&**item);
+                }
             }
         }
 
@@ -360,11 +362,15 @@ impl Pool {
     /// Returns the item at a specified index.
     /// If the index is 0 or greater than the size of the pool, an error is returned.
     pub fn get(&self, index: u16) -> Result<&Item> {
-        self.by_index
+        let item = self.by_index
             .get(index as usize - 1)
-            .ok_or_else(|| Error::InvalidCPItem(index))?
-            .as_ref()
-            .ok_or_else(|| Error::InvalidCPItem(index))
+            .ok_or_else(|| Error::InvalidCPItem(index))?;
+
+        if let Some(item) = *item {
+            unsafe { Ok(&*item) }
+        } else {
+            Err(Error::InvalidCPItem(index))
+        }
     }
 
     /// Returns a cloned String at a specified index.
@@ -405,13 +411,13 @@ impl Pool {
             return Err(Error::CPTooLarge);
         }
 
-        if let Some(index) = self.by_entry.get_mut(&(&item as *const Item)) {
+        if let Some(index) = self.by_entry.get(&item) {
             return Ok(*index + 1);
         }
 
         let double = item.is_double();
-        self.by_entry.insert(&item as *const Item, self.len);
-        self.by_index.push(Some(item));
+        self.by_index.push(Some(&item as *const Item));
+        self.by_entry.insert(item, self.len);
         self.len += 1;
 
         if double {
@@ -429,14 +435,14 @@ impl Pool {
 impl Clone for Pool {
     fn clone(&self) -> Pool {
         let mut by_index = Vec::with_capacity(self.len as usize);
-        let mut by_entry = HashMap::with_capacity(self.len as usize);
+        let mut by_entry: HashMap<Item, u16> = HashMap::with_capacity(self.len as usize);
 
         for (index, item) in self.by_index.iter().enumerate() {
             // Clones the item if it is Some and pushes a pointer to it on the Vec and HashMap.
             if let Some(ref item) = *item {
-                let cloned_item = item.clone();
-                by_entry.insert(&cloned_item as *const Item, index as u16);
-                by_index.push(Some(cloned_item));
+                let cloned_item = unsafe { (&**item) }.clone();
+                by_index.push(Some(&cloned_item as *const Item));
+                by_entry.insert(cloned_item, index as u16);
             } else {
                 by_index.push(None)
             }
@@ -460,6 +466,7 @@ mod tests {
         assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
         assert_eq!(pool.push(Item::Long(32767)).unwrap(), 2);
         assert_eq!(pool.push(Item::Float(3.8)).unwrap(), 4);
+        assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
 
         assert_eq!(pool.get(1).unwrap(), &Item::Integer(123));
         assert_eq!(pool.get(2).unwrap(), &Item::Long(32767));
