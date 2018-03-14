@@ -71,7 +71,7 @@ pub fn parse(input: &[u8]) -> Result<(Pool, Class)> {
 /// Reads the entire constant pool
 fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
     let size = decoder.read_u16()?;
-    let mut pool = Pool::with_capacity(size);
+    let mut pool = Pool::new();
 
     let mut index = 1;
     while index < size {

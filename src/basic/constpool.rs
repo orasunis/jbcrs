@@ -1,6 +1,9 @@
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::collections::HashMap;
 use std::cmp::{Eq, PartialEq};
+use std::rc::Rc;
+use std::slice::Iter;
+
 use result::*;
 
 /// A constant pool item
@@ -302,75 +305,57 @@ pub enum ReferenceKind {
 /// Removing or modifying items is not allowed
 /// to respect already 'used' indices
 /// or to prevent rehashing of the underlying `HashMap`.
+///
+/// A `Vec` and a `HashMap` is used internally to have fast lookups by index and value.
+/// To connect both, `Rc`s are used.
+/// As a result, we will have a little overhead, but this should be negligible.
 #[derive(Default)]
 pub struct Pool {
-    /// The count of all items
-    len: u16,
-
-    /// The constant pool items by index.
-    /// A Option is used, since long and double values take two spaces
-    /// and we still want to access items by index with O(1), not O(n).
-    by_index: Vec<Option<*const Item>>,
-
-    /// The constant pool items by reference to acquire their index.
-    by_entry: HashMap<Item, u16>,
+    length: u16,
+    by_index: Vec<Option<Rc<Item>>>,
+    by_entry: HashMap<Rc<Item>, u16>,
 }
 
 impl Pool {
-    pub fn new() -> Pool {
+    pub fn new() -> Self {
         Pool {
-            len: 0,
+            length: 1,
             by_index: Vec::new(),
             by_entry: HashMap::new(),
         }
     }
 
-    pub fn with_capacity(size: u16) -> Pool {
+    pub fn with_capacity(cap: u16) -> Self {
         Pool {
-            len: 0,
-            by_index: Vec::with_capacity(size as usize),
-            by_entry: HashMap::with_capacity(size as usize),
+            length: 1,
+            by_index: Vec::with_capacity(cap as usize),
+            by_entry: HashMap::with_capacity(cap as usize),
         }
     }
 
-    /// Returns the length of the pool.
+    /// Returns the *encoded* length of the pool.
+    #[inline]
     pub fn len(&self) -> u16 {
-        self.len + 1
+        self.length
     }
 
     /// Returns true if the pool is empty, false otherwise.
+    #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    /// Returns a Vector containing pointers to Items.
-    /// The *Nones* inside the items Vec are filtered.
-    pub fn get_items(&self) -> Vec<&Item> {
-        let mut items = Vec::with_capacity(self.len as usize);
-
-        for opt_item in &self.by_index {
-            if let Some(ref item) = *opt_item {
-                unsafe {
-                    items.push(&**item);
-                }
-            }
-        }
-
-        items
+        self.len() == 1
     }
 
     /// Returns the item at a specified index.
     /// If the index is 0 or greater than the size of the pool, an error is returned.
     pub fn get(&self, index: u16) -> Result<&Item> {
-        let item = self.by_index
-            .get(index as usize - 1)
-            .ok_or_else(|| Error::InvalidCPItem(index))?;
-
-        if let Some(item) = *item {
-            Ok(unsafe { &*item })
-        } else {
-            Err(Error::InvalidCPItem(index))
+        // bounds checking
+        if index != 0 && index <= self.len() {
+            if let Some(ref item) = self.by_index[index as usize - 1] {
+                return Ok(item);
+            }
         }
+
+        Err(Error::InvalidCPItem(index))
     }
 
     /// Returns a cloned String at a specified index.
@@ -407,51 +392,71 @@ impl Pool {
 
     /// Pushes an item on the pool.
     pub fn push(&mut self, item: Item) -> Result<u16> {
-        if self.len == u16::max_value() {
+        if self.len() == u16::max_value() {
             return Err(Error::CPTooLarge);
         }
 
-        if let Some(index) = self.by_entry.get(&item) {
-            return Ok(*index + 1);
-        }
-
         let double = item.is_double();
-        self.by_index.push(Some(&item as *const Item));
-        self.by_entry.insert(item, self.len);
-        self.len += 1;
+        let length = &mut self.length;
 
-        if double {
-            // long and double take an additional space
-            self.by_index.push(None);
-            self.len += 1;
+        let rc_item = Rc::new(item);
+        let rc_item1 = Rc::clone(&rc_item);
 
-            Ok(self.len - 1)
-        } else {
-            Ok(self.len)
+        let by_index = &mut self.by_index;
+
+        // check if in pool, if not insert it
+        Ok(*self.by_entry.entry(rc_item).or_insert_with(move || {
+            by_index.push(Some(Rc::clone(&rc_item1)));
+
+            let prev_length = *length;
+            if double {
+                // long and double take an additional space
+                by_index.push(None);
+                *length += 2;
+            } else {
+                *length += 1;
+            }
+            prev_length
+        }))
+    }
+
+    pub fn iter(&self) -> PoolIter {
+        PoolIter {
+            iter: self.by_index.iter(),
+            index: 0,
         }
     }
 }
 
-impl Clone for Pool {
-    fn clone(&self) -> Pool {
-        let mut by_index = Vec::with_capacity(self.len as usize);
-        let mut by_entry = HashMap::with_capacity(self.len as usize);
+// implement later again (maybe)
+//impl Clone for Pool {
+//    fn clone(&self) -> Pool {
+//        Pool {
+//            content: self.content.clone(),
+//        }
+//    }
+//}
 
-        for (index, item) in self.by_index.iter().enumerate() {
-            // Clones the item if it is Some and pushes a pointer to it on the Vec and HashMap.
-            if let Some(ref item) = *item {
-                let cloned_item = unsafe { &**item }.clone();
-                by_index.push(Some(&cloned_item as *const Item));
-                by_entry.insert(cloned_item, index as u16);
+/// Iterates over all the elements in the constant pool
+/// It basically is a filter with a different name
+pub struct PoolIter<'a> {
+    iter: Iter<'a, Option<Rc<Item>>>,
+    index: u16,
+}
+
+impl<'a> Iterator for PoolIter<'a> {
+    type Item = (u16, &'a Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.index += 1;
+        if let Some(rc_item) = self.iter.next() {
+            if let Some(ref item) = *rc_item {
+                Some((self.index + 1, item))
             } else {
-                by_index.push(None)
+                self.next()
             }
-        }
-
-        Pool {
-            len: self.len,
-            by_index,
-            by_entry,
+        } else {
+            None
         }
     }
 }
@@ -465,11 +470,20 @@ mod tests {
         let mut pool = Pool::new();
         assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
         assert_eq!(pool.push(Item::Long(32767)).unwrap(), 2);
-        assert_eq!(pool.push(Item::Float(3.8)).unwrap(), 4);
+        assert_eq!(pool.push(Item::Long(65535)).unwrap(), 4);
+        assert_eq!(pool.push(Item::Float(3.8)).unwrap(), 6);
         assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
 
         assert_eq!(pool.get(1).unwrap(), &Item::Integer(123));
         assert_eq!(pool.get(2).unwrap(), &Item::Long(32767));
-        assert_eq!(pool.get(4).unwrap(), &Item::Float(3.8));
+        assert_eq!(pool.get(4).unwrap(), &Item::Long(65535));
+        assert_eq!(pool.get(6).unwrap(), &Item::Float(3.8));
+
+        //let mut iter = pool.iter();
+        //assert_eq!(iter.next(), Some((1, &Item::Integer(123))));
+        //assert_eq!(iter.next(), Some((2, &Item::Long(32767))));
+        //assert_eq!(iter.next(), Some((4, &Item::Long(65535))));
+        //assert_eq!(iter.next(), Some((6, &Item::Float(3.8))));
+        //assert_eq!(iter.next(), None);
     }
 }
