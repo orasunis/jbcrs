@@ -36,8 +36,8 @@ pub fn write(constant_pool: &Pool, class: &Class) -> Result<Vec<u8>> {
 /// Writes the constant pool
 fn write_constant_pool(encoder: &mut Encoder, pool: &Pool) {
     // write length and after that the items
-    encoder.write_u16(pool.encoded_length());
-    for item in pool.get_items() {
+    encoder.write_u16(pool.len());
+    for (_index, item) in pool.iter() {
         match *item {
             Item::UTF8(ref s) => {
                 encoder.write_u8(1);

@@ -152,7 +152,7 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
             _ => return Err(Error::InvalidCPItem(index)),
         };
 
-        pool.push(item)?;
+        pool.push_duplicate(item)?;
         index += 1;
     }
 

@@ -420,6 +420,31 @@ impl Pool {
         }))
     }
 
+    /// Pushes an item, which might be a duplicate.
+    /// This removes the possibility of reading a class,
+    /// which has multiple constant pool entries, which are the same
+    /// and then accessing the wrong entry.
+    pub fn push_duplicate(&mut self, item: Item) -> Result<u16> {
+        if self.len() == u16::max_value() {
+            return Err(Error::CPTooLarge);
+        }
+
+        let double = item.is_double();
+        let length = self.length;
+        let rc_item = Rc::new(item);
+
+        self.by_index.push(Some(Rc::clone(&rc_item)));
+        if double {
+            self.by_index.push(None);
+            self.length += 2;
+        } else {
+            self.length += 1;
+        }
+
+        self.by_entry.insert(rc_item, length);
+        Ok(length)
+    }
+
     /// Pushes a new UTF-8 item on the pool and returns an index to it.
     pub fn push_utf8(&mut self, content: String) -> Result<u16> {
         self.push(Item::UTF8(content))
@@ -462,7 +487,7 @@ impl<'a> Iterator for PoolIter<'a> {
         self.index += 1;
         if let Some(rc_item) = self.iter.next() {
             if let Some(ref item) = *rc_item {
-                Some((self.index + 1, item))
+                Some((self.index, item))
             } else {
                 self.next()
             }
@@ -477,24 +502,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn constpool() {
+    fn push_and_get() {
         let mut pool = Pool::new();
         assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
         assert_eq!(pool.push(Item::Long(32767)).unwrap(), 2);
         assert_eq!(pool.push(Item::Long(65535)).unwrap(), 4);
         assert_eq!(pool.push(Item::Float(3.8)).unwrap(), 6);
+        assert_eq!(pool.len(), 7);
         assert_eq!(pool.push(Item::Integer(123)).unwrap(), 1);
+        assert_eq!(pool.len(), 7);
 
         assert_eq!(pool.get(1).unwrap(), &Item::Integer(123));
         assert_eq!(pool.get(2).unwrap(), &Item::Long(32767));
         assert_eq!(pool.get(4).unwrap(), &Item::Long(65535));
         assert_eq!(pool.get(6).unwrap(), &Item::Float(3.8));
 
-        //let mut iter = pool.iter();
-        //assert_eq!(iter.next(), Some((1, &Item::Integer(123))));
-        //assert_eq!(iter.next(), Some((2, &Item::Long(32767))));
-        //assert_eq!(iter.next(), Some((4, &Item::Long(65535))));
-        //assert_eq!(iter.next(), Some((6, &Item::Float(3.8))));
-        //assert_eq!(iter.next(), None);
+        let mut iter = pool.iter();
+        assert_eq!(iter.next(), Some((1, &Item::Integer(123))));
+        assert_eq!(iter.next(), Some((2, &Item::Long(32767))));
+        assert_eq!(iter.next(), Some((4, &Item::Long(65535))));
+        assert_eq!(iter.next(), Some((6, &Item::Float(3.8))));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn push_duplicate() {
+        let mut pool = Pool::new();
+        assert_eq!(pool.push_duplicate(Item::Integer(123)).unwrap(), 1);
+        assert_eq!(pool.push_duplicate(Item::Long(32767)).unwrap(), 2);
+        assert_eq!(pool.push_duplicate(Item::Long(65535)).unwrap(), 4);
+        assert_eq!(pool.push_duplicate(Item::Float(3.8)).unwrap(), 6);
+        assert_eq!(pool.len(), 7);
+        assert_eq!(pool.push_duplicate(Item::Integer(123)).unwrap(), 7);
+        assert_eq!(pool.len(), 8);
+
+        assert_eq!(pool.get(1).unwrap(), &Item::Integer(123));
+        assert_eq!(pool.get(2).unwrap(), &Item::Long(32767));
+        assert_eq!(pool.get(4).unwrap(), &Item::Long(65535));
+        assert_eq!(pool.get(6).unwrap(), &Item::Float(3.8));
+        assert_eq!(pool.get(7).unwrap(), &Item::Integer(123));
     }
 }
