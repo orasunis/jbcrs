@@ -176,7 +176,8 @@ mod test {
             #[test]
             fn $func() {
                 $(
-                    let mut decoder = $crate::decode::Decoder::new(&$input);
+                    let mut cursor = 0;
+                    let mut decoder = super::Decoder::new(&$input, &mut cursor);
                     for e in &$expected {
                         assert_eq!(decoder.$func().unwrap(), *e);
                     }
@@ -244,9 +245,8 @@ mod test {
 
     #[test]
     fn read_str() {
-        use super::Decoder;
-
-        let mut decoder = Decoder::new("Hello, world!".as_bytes());
+        let mut cursor = 0;
+        let mut decoder = super::Decoder::new("Hello, world!".as_bytes(), &mut cursor);
         assert_eq!(decoder.read_str(13).unwrap(), "Hello, world!".to_owned());
         // not complete, add more later.
     }

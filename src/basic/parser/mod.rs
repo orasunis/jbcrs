@@ -67,7 +67,7 @@ pub fn parse(input: &[u8]) -> Result<(Pool, Class)> {
 /// Reads the entire constant pool
 fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
     let size = decoder.read_u16()?;
-    let mut pool = Pool::with_capacity(size);
+    let mut pool = Pool::new();
 
     let mut index = 1;
     while index < size {
@@ -152,15 +152,8 @@ fn read_constant_pool(decoder: &mut Decoder) -> Result<Pool> {
             _ => return Err(Error::InvalidCPItem(index)),
         };
 
-        pool.push_with_dup(Some(item))?;
-
+        pool.push(item)?;
         index += 1;
-
-        // long and double constants take two spaces
-        if tag == 5 || tag == 6 {
-            pool.push_with_dup(None)?;
-            index += 1;
-        }
     }
 
     Ok(pool)

@@ -4,7 +4,6 @@ extern crate jbcrs;
 use std::fs::File;
 use std::io::Read;
 use std::env;
-use jbcrs::basic::Item;
 
 fn main() {
     // get the file path
@@ -23,12 +22,8 @@ fn main() {
     // to help the user get a constant pool item by index
 
     println!("Constant Pool:");
-    let mut index = 1;
-    for item in pool.get_items() {
+    for (index, item) in pool.iter() {
         println!("    #{}: {:?}", index, item);
-
-        // double and long items are 2 items sized
-        index += if item.is_double() { 2 } else { 1 };
     }
 
     // Class derives Debug,
