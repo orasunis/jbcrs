@@ -21,6 +21,7 @@ pub fn parse_code(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Attribu
         loop {
             let (end, instruction) = parse_instruction(&mut code_decoder, code_location)?;
             instructions.push(Some(instruction));
+            code_location += 1;
             while code_location != end {
                 instructions.push(None);
                 code_location += 1;
