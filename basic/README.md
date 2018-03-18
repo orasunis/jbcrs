@@ -28,7 +28,7 @@ but certain features have already been implemented:
 First, add this library as a dependency to your Cargo.toml
 ```toml
 [dependencies]
-jbcrs_basic = "0.1.3"
+jbcrs_basic = "0.1.4"
 ```
 
 We want to parse a class from a byte array
