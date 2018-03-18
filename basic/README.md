@@ -1,5 +1,5 @@
-[![](https://img.shields.io/crates/v/jbcrs.svg)](https://crates.io/crates/jbcrs) [![](https://docs.rs/jbcrs/badge.svg)](https://docs.rs/jbcrs)
-# JBcRs
+[![](https://img.shields.io/crates/v/jbcrs-basic.svg)](https://crates.io/crates/jbcrs-basic) [![](https://docs.rs/jbcrs-basic/badge.svg)](https://docs.rs/jbcrs-basic)
+# JBcRs-basic
 **JBcRs is a Library, written in rust, to support reading and writing of java class files.**
 
 This library is not close from being finished,
@@ -19,7 +19,8 @@ but certain features have already been implemented:
     which don't play a serious role in executing the code,
     Parsing the entire class file then might not work,
     since an error will be returned.
-- More will be coming soon&trade;.
+- **Basic writing:**
+  A class file is written as it was parsed.
 
 ---
 # Getting Started:
@@ -27,20 +28,18 @@ but certain features have already been implemented:
 First, add this library as a dependency to your Cargo.toml
 ```toml
 [dependencies]
-jbcrs = "0.1.0"
+jbcrs_basic = "0.1.3"
 ```
 
-Now, you should choose if you want to use `basic` or `advanced`,
-but since `advanced` is not yet implemented, `basic` must be used.
-
-# Basic
 We want to parse a class from a byte array
 and print its version, access flags and name.
 Of course you could use std::fs::File or a zip library,
 but showing this is not the purpose of this tutorial.
 
 ```rust
-use jbcrs::basic;
+extern crate jbcrs_basic;
+
+use jbcrs_basic::*;
 
 // You got the bytes from any possible source.
 let bytes: &[u8] = [0xCA, 0xFE, 0xBA, 0xBE];
@@ -49,7 +48,7 @@ let bytes: &[u8] = [0xCA, 0xFE, 0xBA, 0xBE];
 // you will get the constant pool
 // and the class itself.
 // You don't have to annotate the types here.
-let (constant_pool, class): (basic::Pool, basic::Class) = basic::parse(bytes)
+let (constant_pool, class): (Pool, Class) = parse(bytes)
     .expect("could not parse class file");
 
 // Print its major and minor version:
