@@ -48,7 +48,7 @@ pub enum Attribute {
     Code {
         max_stack: u16,
         max_locals: u16,
-        instructions: BTreeMap<u32, Instruction>,
+        instructions: Vec<Option<Instruction>>,
         exceptions: Vec<Exception>,
         attributes: Vec<Attribute>,
     },

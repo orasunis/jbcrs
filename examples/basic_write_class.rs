@@ -1,8 +1,6 @@
 extern crate jbcrs;
 
 use std::io::{stdout, Write};
-use std::collections::BTreeMap;
-
 use jbcrs::basic::*;
 
 fn main() {
@@ -76,7 +74,7 @@ fn new_run_method(constant_pool: &mut Pool) -> Method {
     let mut attributes = Vec::new();
 
     // add the Code attribute
-    let mut instructions = BTreeMap::new();
+    let mut instructions = Vec::new();
 
     // access the counter field
 
@@ -99,11 +97,11 @@ fn new_run_method(constant_pool: &mut Pool) -> Method {
         .unwrap();
 
     // indices have to be sorted from low to high
-    instructions.insert(0, Instruction::GetField(counter_field));
-    instructions.insert(1, Instruction::BIPush(5));
-    instructions.insert(2, Instruction::IAdd);
-    instructions.insert(3, Instruction::PutField(counter_field));
-    instructions.insert(4, Instruction::Return);
+    instructions.push(Some(Instruction::GetField(counter_field)));
+    instructions.push(Some(Instruction::BIPush(5)));
+    instructions.push(Some(Instruction::IAdd));
+    instructions.push(Some(Instruction::PutField(counter_field)));
+    instructions.push(Some(Instruction::Return));
 
     attributes.push(Attribute::Code {
         max_locals: 0,

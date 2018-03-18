@@ -9,25 +9,27 @@ pub fn parse_code(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Attribu
     let max_locals = decoder.read_u16()?;
 
     let code_length = decoder.read_u32()?;
-    let mut instructions = BTreeMap::new();
+    let mut instructions = Vec::with_capacity(code_length as usize);
 
     // Read the instructions
     // Using an extra block so we don't have to enable NLL on nightly
-    // A method doesn't seem necessary to me, too
+    // A method doesn't seem necessary to me as well
     {
         let mut code_decoder = decoder.limit(code_length as usize)?;
 
         let mut code_location = 0;
         loop {
             let (end, instruction) = parse_instruction(&mut code_decoder, code_location)?;
-            instructions.insert(code_location, instruction);
+            instructions.push(Some(instruction));
+            while code_length != end {
+                instructions.push(None);
+                code_location += 1;
+            }
 
             // we have read all instructions
             if end == code_length {
                 break;
             }
-
-            code_location = end;
         }
 
         code_decoder.remove_limit()?;
