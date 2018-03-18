@@ -1,7 +1,7 @@
-extern crate jbcrs;
+extern crate jbcrs_basic;
 
 use std::io::{stdout, Write};
-use jbcrs::basic::*;
+use jbcrs_basic::*;
 
 fn main() {
     // construct a new constant pool

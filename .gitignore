@@ -1,4 +1,6 @@
 /target/
+/basic/target/
 **/*.rs.bk
 Cargo.lock
+/basic/Cargo.lock
 **/*.class

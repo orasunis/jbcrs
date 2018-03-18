@@ -1,10 +1,6 @@
-#[macro_use]
-extern crate bitflags;
-extern crate byteorder;
+extern crate jbcrs_basic as basic;
 #[macro_use]
 extern crate yade;
-
-pub mod basic;
 
 mod result;
 mod types;

@@ -1,10 +1,10 @@
 [package]
-name = "jbcrs"
+name = "jbcrs-basic"
 version = "0.1.3"
 authors = ["orasunis"]
 
 repository = "https://github.com/orasunis/jbcrs"
-documentation = "https://docs.rs/jbcrs"
+documentation = "https://docs.rs/jbcrs_basic"
 
 description = "A Library to support reading and writing of java class files."
 readme = "README.md"
@@ -15,5 +15,6 @@ license = "Unlicense"
 include = ["Cargo.toml", "src/**/*.rs", "README.md", "UNLICENSE"]
 
 [dependencies]
-jbcrs-basic = { path = "basic" }
+bitflags = "1.0.1"
+byteorder = "1.2.1"
 yade = "0.1.2"

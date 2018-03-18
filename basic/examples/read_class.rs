@@ -1,5 +1,5 @@
 //! Reads and prints the content of a class file to STDOUT.
-extern crate jbcrs;
+extern crate jbcrs_basic;
 
 use std::fs::File;
 use std::io::Read;
@@ -15,7 +15,7 @@ fn main() {
     file.read_to_end(&mut buf).expect("could not read file");
 
     // then parse it
-    let (pool, class) = jbcrs::basic::parse(buf.as_ref()).expect("could not parse class file");
+    let (pool, class) = jbcrs_basic::parse(buf.as_ref()).expect("could not parse class file");
 
     // now print it to stdout
     // the constant pool will be printed differently
