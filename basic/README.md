@@ -2,6 +2,7 @@
 # JBcRs-basic
 **JBcRs is a Library, written in rust, to support reading and writing of java class files.**
 
+If you want to read and write using a more *advanced* format, use [jbcrs](../README.md).
 This library is not close from being finished,
 but certain features have already been implemented:
 
