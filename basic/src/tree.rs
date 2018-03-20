@@ -1,4 +1,4 @@
-//! The tree package provides the basic structure of a basic class file
+//! The tree package provides the basic structure of a basic class file.
 
 use std::collections::BTreeMap;
 

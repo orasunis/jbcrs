@@ -1,4 +1,4 @@
-//! The basic module provides basic read and write capabilities.
+//! The jbcrs-basic crate provides basic read and write capabilities.
 
 #[macro_use]
 extern crate bitflags;

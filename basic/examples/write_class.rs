@@ -1,3 +1,5 @@
+//! Write a complete new class to StdOut.
+
 extern crate jbcrs_basic;
 
 use std::io::{stdout, Write};
@@ -96,7 +98,6 @@ fn new_run_method(constant_pool: &mut Pool) -> Method {
         })
         .unwrap();
 
-    // indices have to be sorted from low to high
     instructions.push(Some(Instruction::GetField(counter_field)));
     instructions.push(Some(Instruction::BIPush(5)));
     instructions.push(Some(Instruction::IAdd));
