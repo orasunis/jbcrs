@@ -8,86 +8,199 @@ pub const MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
 /// A java class file.
 #[derive(Debug)]
 pub struct Class {
+    /// The minor version number, usually `0` and used together with `major_version`.
     pub minor_version: u16,
+
+    /// The major version number, used together with `minor_version`.
     pub major_version: u16,
 
+    /// Denotes access permissions to and properties of this class.
     pub access_flags: AccessFlags,
+
+    /// The name of the class at a specific index into the constant pool.
+    /// It must be of `Item::Class(_)`.
     pub name: u16,
+
+    /// The super name of the class at either `0` or a specific index into the constant pool.
+    /// If it is `0` this class file must be the class `java/lang/Object`.
+    /// Otherwise it must be of `Item::Class(_)`.
+    /// For interfaces, it must be an index representing the class `java/lang/Object`.
     pub super_name: u16,
+
+    /// The indices to the interfaces in the constant pool, this class is implementing.
+    /// Every index must be of `Item::Class(_)`.
+    /// It must at most contain `65535` (or `0xFFFF`) items.
     pub interfaces: Vec<u16>,
 
+    /// The fields this class declares, it does not contain items from superclasses or superinterfaces.
+    /// It must at most be of length `65535` (or `0xFFFF`).
     pub fields: Vec<Field>,
+
+    /// The methods this class declares, it does not contain items from superclasses or superinterfaces.
+    /// It must at most be of length `65535` (or `0xFFFF`).
     pub methods: Vec<Method>,
 
+    /// The attributes of this class file.
+    /// It must at most be of length `65535` (or `0xFFFF`).
     pub attributes: Vec<Attribute>,
 }
 
 /// A field.
 #[derive(Debug)]
 pub struct Field {
+    /// Denotes access permissions to and properties of this field.
     pub access_flags: AccessFlags,
+    /// The name of the field at a specific index into the constant pool.
+    /// It must be of `Item::UTF8(_)`.
     pub name: u16,
+    /// The descriptor of the field at a specific index into the constant pool.
+    /// It must be of `Item::UTF8(_)`.
     pub desc: u16,
+    /// The attributes of this field.
+    /// It must at most be of length `65535` (or `0xFFFF`).
     pub attributes: Vec<Attribute>,
 }
 
 /// A method.
 #[derive(Debug)]
 pub struct Method {
+    /// Denotes access permissions to and properties of this method.
     pub access_flags: AccessFlags,
+    /// The name of the method at a specific index into the constant pool.
+    /// It must be of `Item::UTF8(_)`.
     pub name: u16,
+    /// The descriptor of the method at a specific index into the constant pool.
+    /// It must be of `Item::UTF8(_)`.
     pub desc: u16,
+    /// The attributes of this method.
+    /// If neither `AccessFlags::NATIVE`, nor `AccessFlags::ABSTRACT` are set,
+    /// one `Code` attribute must exist.
+    /// It must at most be of length `65535` (or `0xFFFF`).
     pub attributes: Vec<Attribute>,
 }
 
 /// An Attribute.
 #[derive(Debug)]
 pub enum Attribute {
+    /// Records the default value of an annotation attribute.
     AnnotationDefault(ElementValue),
+    /// Records specifiers referenced by `Instruction::InvokeDynamic(_)`.
+    /// May at most contain 65535 (or `0xFFFF`) items.
     BootstrapMethods(Vec<BootstrapMethod>),
+    /// Contains the JVM instructions, exceptions and more attributes.
     Code {
+        /// The maximum size of the operand stack of this method.
         max_stack: u16,
+        /// The maximum count of the locals of this method.
         max_locals: u16,
+        /// The JVM instructions of this method.
+        /// It must at most be of size `u32::max_value()`.
+        /// `None`s are thought as *padding*.
+        /// This is necessary to avoid relocation (is this a word?) of branch instructions
+        /// such as `GoTo` and `TableSwitch`.
+        /// When writing, those are ignored and thus can be omitted.
         instructions: Vec<Option<Instruction>>,
+        /// The exception handlers of the code.
         exceptions: Vec<Exception>,
+        /// The attributes of this code attribute.
+        /// It must at most be of length `65535` (or `0xFFFF`).
         attributes: Vec<Attribute>,
     },
+    /// Represents the value of a constant expression.
+    /// If the `AcessFlags::STATIC` flag is not set on the field, it is ignored.
+    /// The value is assigned prior to the class intialization.
     ConstantValue(u16),
+    /// Marks that class, field or method is deprecated.
     Deprecated,
+    /// A class containing this attribute represents a local or an anonymous class.
     EnclosingMethod {
+        /// The innermost class enclosing the declaration of this class.
+        /// It must be of `Item::Class(_)`.
         class_index: u16,
+        /// The innermost name and type of the method enclosing the declaration of this class.
+        /// If it is not immediately enclosed by a method, it must be `0`.
+        /// If it is not `0` it must be of `Item::NameAndType(_)`.
         method_index: u16,
     },
     Exceptions(Vec<u16>),
+    /// The inner classes of a class, used as debug information.
+    /// It must at most contain `65535` (or `0xFFFF`) entries.
     InnerClasses(Vec<InnerClass>),
+    /// Specifies the line numbers of certain parts of the code attribute.
+    /// It is used for debugging.
     LineNumberTable(Vec<LineNumber>),
+    /// Specifies the name, type and scope of a local variable.
+    /// It is used for debugging.
     LocalVariableTable(Vec<LocalVariable>),
+    /// Specifies the name, type and scope of a local variable.
+    /// It is used for debugging.
     LocalVariableTypeTable(Vec<LocalVariableType>),
+    /// Records information of method parameters.
+    /// May at most be `65535` (or `0xFFFF`) items long.
     MethodParameters(Vec<MethodParameter>),
+    /// Specifies information required by a module (a class containing `AccessFlags::MODULE`).
     Module {
+        /// The name of this module.
+        /// It must be of `Item::Module(_)`.
         name: u16,
+        /// Denotes access permissions to and properties of this module.
         flags: AccessFlags,
+        /// Represents the version of this module.
+        /// If it is not `0`, it must be of `Item::UTF8(_)`.
         version: u16,
 
+        /// Specifies the dependencies of this module.
         requires: Vec<Requirement>,
+        /// Specifies the packages exported by this module.
         exports: Vec<Export>,
+        /// Specifies the packages opened by this module.
         opens: Vec<Opening>,
+        /// Specifies the classes, this module might discover using `java/util/ServiceLoader`.
+        /// It must be of `Item::Class(_)`.
         uses: Vec<u16>,
+        /// Specifies the service implementations for a given service interface.
         provides: Vec<Provider>,
     },
+    /// Specifies the main class of a module.
     ModuleMainClass(u16),
+    /// Indicates all the packages of a module,
+    /// that are either opened, exported or the packages of service implementations.
     ModulePackages(Vec<u16>),
+    /// Runtime visible annotations.
+    /// May not be more than 65535 (or `0xFFFF`).
     RuntimeVisibleAnnotations(Vec<Annotation>),
+    /// Runtime invisible annotations.
+    /// May not be more than 65535 (or `0xFFFF`).
     RuntimeInvisibleAnnotations(Vec<Annotation>),
+    /// Runtime visible parameter annotations.
+    /// The outer `Vec` is used to access by parameter index,
+    /// and must not be larger than 255 (or `0xFF`).
+    /// The inner `Vec` specifies the annotations of the given parameter,
+    /// and must not be larger than 65535 (or `0xFFFF`).
     RuntimeVisibleParameterAnnotations(Vec<Vec<Annotation>>),
+    /// Runtime invisible parameter annotations.
+    /// The outer `Vec` is used to access by parameter index,
+    /// and must not be larger than 255 (or `0xFF`).
+    /// The inner `Vec` specifies the annotations of the given parameter,
+    /// and must not be larger than 65535 (or `0xFFFF`).
     RuntimeInvisibleParameterAnnotations(Vec<Vec<Annotation>>),
+    /// Runtime visible type annotations.
+    /// May not be more than 65535 (or `0xFFFF`).
     RuntimeVisibleTypeAnnotations(Vec<TypeAnnotation>),
+    /// Runtime invisible type annotations.
+    /// May not be more than 65535 (or `0xFFFF`).
     RuntimeInvisibleTypeAnnotations(Vec<TypeAnnotation>),
+    /// Specifies a signature.
     Signature(u16),
+    /// Declares a hidden class, field or method.
     Synthetic,
+    /// Specifies the file this class file was compiled from.
     SourceFile(u16),
+    /// Holds debug information.
     SourceDebugExtension(String),
+    /// Provides information used for type verification.
     StackMapTable(Vec<StackMapFrame>),
+    /// This attribute is not defined in the JVM Specification.
     Unknown(u16, Vec<u8>),
 }
 
@@ -101,6 +214,7 @@ bitflags! {
         const FINAL        = 0b0000_0000_0001_0000;
         const SUPER        = 0b0000_0000_0010_0000;
         const SYNCHRONIZED = 0b0000_0000_0010_0000;
+        const OPEN         = 0b0000_0000_0010_0000;
         const VOLATILE     = 0b0000_0000_0100_0000;
         const BRIDGE       = 0b0000_0000_0100_0000;
         const STATIC_PHASE = 0b0000_0000_0100_0000;
@@ -711,9 +825,9 @@ pub enum TypePathKind {
 
 #[derive(Debug)]
 pub struct LocalVariableTarget {
-    /// Start of the Code.
+    /// Start of the code.
     pub start: u16,
-    /// Length of the Code.
+    /// Length of the code.
     pub length: u16,
     /// The index in the local variable array of the current frame.
     /// double and long do occupy two spaces.
@@ -723,9 +837,9 @@ pub struct LocalVariableTarget {
 /// An entry of the `LocalVariableTable`
 #[derive(Debug)]
 pub struct LocalVariable {
-    /// Start of the Code.
+    /// Start of the code.
     pub start: u16,
-    /// Length of the Code.
+    /// Length of the code.
     pub length: u16,
     /// The index to an `Item::UTF8(_)` representing a valid unqalified name.
     pub name: u16,
@@ -739,9 +853,9 @@ pub struct LocalVariable {
 /// An entry of the `LocalVariableTypeTable`
 #[derive(Debug)]
 pub struct LocalVariableType {
-    /// Start of the Code.
+    /// Start of the code.
     pub start: u16,
-    /// Length of the Code.
+    /// Length of the code.
     pub length: u16,
     /// The index to an `Item::UTF8(_)` representing a valid unqalified name.
     pub name: u16,
