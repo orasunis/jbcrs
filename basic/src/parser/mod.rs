@@ -206,24 +206,26 @@ fn parse_attributes(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Vec<A
     let count = decoder.read_u16()?;
     let mut attributes = Vec::with_capacity(count as usize);
     for _ in 0..count {
+        use Attribute::*;
+
         let name_index = decoder.read_u16()?;
         let name = constant_pool.get_utf8(name_index)?;
         let length = decoder.read_u32()?;
 
-        // limit attribute length
+        // Limit to attribute length.
+        // We will now get an error,
+        // if the attribute length is not the same as the required length.
         let mut attr_decoder = decoder.limit(length as usize)?;
 
-        let attribute = match name.as_ref() {
-            "AnnotationDefault" => {
-                Attribute::AnnotationDefault(parse_element_value(&mut attr_decoder)?)
-            }
+        let attribute = match &*name {
+            "AnnotationDefault" => AnnotationDefault(parse_element_value(&mut attr_decoder)?),
             "BootstrapMethods" => parse_bootstrap_methods(&mut attr_decoder)?,
             "Code" => parse_code(&mut attr_decoder, constant_pool)?,
             "ConstantValue" => {
                 let index = attr_decoder.read_u16()?;
-                Attribute::ConstantValue(index)
+                ConstantValue(index)
             }
-            "Deprecated" => Attribute::Deprecated,
+            "Deprecated" => Deprecated,
             "EnclosingMethods" => parse_enclosing_method(&mut attr_decoder)?,
             "Exceptions" => parse_exceptions(&mut attr_decoder)?,
             "InnerClasses" => parse_inner_classes(&mut attr_decoder)?,
@@ -234,50 +236,48 @@ fn parse_attributes(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Vec<A
             "Module" => parse_module(&mut attr_decoder)?,
             "ModuleMainClass" => {
                 let index = attr_decoder.read_u16()?;
-                Attribute::ModuleMainClass(index)
+                ModuleMainClass(index)
             }
             "ModulePackages" => parse_module_packages(&mut attr_decoder)?,
             "RuntimeVisibleAnnotations" => {
                 let annotations = parse_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeVisibleAnnotations(annotations)
+                RuntimeVisibleAnnotations(annotations)
             }
             "RuntimeInvisibleAnnotations" => {
                 let annotations = parse_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeInvisibleAnnotations(annotations)
+                RuntimeInvisibleAnnotations(annotations)
             }
             "RuntimeVisibleParameterAnnotations" => {
                 let annotations = parse_parameter_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeVisibleParameterAnnotations(annotations)
+                RuntimeVisibleParameterAnnotations(annotations)
             }
             "RuntimeInvisibleParameterAnnotations" => {
                 let annotations = parse_parameter_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeInvisibleParameterAnnotations(annotations)
+                RuntimeInvisibleParameterAnnotations(annotations)
             }
             "RuntimeVisibleTypeAnnotations" => {
                 let annotations = parse_type_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeVisibleTypeAnnotations(annotations)
+                RuntimeVisibleTypeAnnotations(annotations)
             }
             "RuntimeInvisibleTypeAnnotations" => {
                 let annotations = parse_type_annotations(&mut attr_decoder)?;
-                Attribute::RuntimeInvisibleTypeAnnotations(annotations)
+                RuntimeInvisibleTypeAnnotations(annotations)
             }
             "SourceFile" => {
                 let index = attr_decoder.read_u16()?;
-                Attribute::SourceFile(index)
+                SourceFile(index)
             }
             "Signature" => {
                 let index = attr_decoder.read_u16()?;
-                Attribute::Signature(index)
+                Signature(index)
             }
             "StackMapTable" => parse_stack_map_table(&mut attr_decoder)?,
             "Synthetic" => Attribute::Synthetic,
-            "SourceDebugExtension" => {
-                Attribute::SourceDebugExtension(attr_decoder.read_str(length as usize)?)
-            }
+            "SourceDebugExtension" => SourceDebugExtension(attr_decoder.read_str(length as usize)?),
 
             _ => {
                 let bytes = attr_decoder.read_bytes(length as usize)?;
-                Attribute::Unknown(name_index, bytes.to_vec())
+                Unknown(name_index, bytes.to_vec())
             }
         };
         attributes.push(attribute);
