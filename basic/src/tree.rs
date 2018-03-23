@@ -42,7 +42,7 @@ pub struct Class {
 
     /// The attributes of this class file.
     /// It must at most be of length `65535` (or `0xFFFF`).
-    pub attributes: Vec<Attribute>,
+    pub attributes: Attributes,
 }
 
 /// A field.
@@ -58,7 +58,7 @@ pub struct Field {
     pub desc: u16,
     /// The attributes of this field.
     /// It must at most be of length `65535` (or `0xFFFF`).
-    pub attributes: Vec<Attribute>,
+    pub attributes: Attributes,
 }
 
 /// A method.
@@ -76,7 +76,7 @@ pub struct Method {
     /// If neither `AccessFlags::NATIVE`, nor `AccessFlags::ABSTRACT` are set,
     /// one `Code` attribute must exist.
     /// It must at most be of length `65535` (or `0xFFFF`).
-    pub attributes: Vec<Attribute>,
+    pub attributes: Attributes,
 }
 
 /// An Attribute.
@@ -104,7 +104,7 @@ pub enum Attribute {
         exceptions: Vec<Exception>,
         /// The attributes of this code attribute.
         /// It must at most be of length `65535` (or `0xFFFF`).
-        attributes: Vec<Attribute>,
+        attributes: Attributes,
     },
     /// Represents the value of a constant expression.
     /// If the `AcessFlags::STATIC` flag is not set on the field, it is ignored.
@@ -201,8 +201,13 @@ pub enum Attribute {
     /// Provides information used for type verification.
     StackMapTable(Vec<StackMapFrame>),
     /// This attribute is not defined in the JVM Specification.
-    Unknown(u16, Vec<u8>),
+    Unknown(Vec<u8>),
 }
+
+/// An alias for a collection of attributes.
+/// The first value specifies the index of the name.
+/// The second one the attribute type and content.
+pub type Attributes = Vec<(u16, Attribute)>;
 
 bitflags! {
     /// The access flags of a part of the class

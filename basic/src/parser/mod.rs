@@ -202,9 +202,10 @@ fn parse_methods(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Vec<Meth
 }
 
 /// Parses all attributes
-fn parse_attributes(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Vec<Attribute>> {
+fn parse_attributes(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Attributes> {
     let count = decoder.read_u16()?;
-    let mut attributes = Vec::with_capacity(count as usize);
+    let mut attributes = Attributes::with_capacity(count as usize);
+
     for _ in 0..count {
         use Attribute::*;
 
@@ -277,10 +278,10 @@ fn parse_attributes(decoder: &mut Decoder, constant_pool: &Pool) -> Result<Vec<A
 
             _ => {
                 let bytes = attr_decoder.read_bytes(length as usize)?;
-                Unknown(name_index, bytes.to_vec())
+                Unknown(bytes.to_vec())
             }
         };
-        attributes.push(attribute);
+        attributes.push((name_index, attribute));
 
         // go on
         attr_decoder.remove_limit()?;

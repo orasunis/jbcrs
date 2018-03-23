@@ -138,7 +138,7 @@ fn write_constant_pool(encoder: &mut Encoder, pool: &Pool) {
     }
 }
 
-/// Writes all fields to the encoder
+/// Writes all fields to the encoder.
 fn write_fields(encoder: &mut Encoder, fields: &[Field]) {
     encoder.write_u16(fields.len() as u16);
     for field in fields {
@@ -149,7 +149,7 @@ fn write_fields(encoder: &mut Encoder, fields: &[Field]) {
     }
 }
 
-/// Writes all methods to the encoder
+/// Writes all methods to the encoder.
 fn write_methods(encoder: &mut Encoder, methods: &[Method]) {
     encoder.write_u16(methods.len() as u16);
     for method in methods {
@@ -160,8 +160,21 @@ fn write_methods(encoder: &mut Encoder, methods: &[Method]) {
     }
 }
 
-/// Writes all attributes to the encoder
-fn write_attributes(encoder: &mut Encoder, _attributes: &[Attribute]) {
-    // implement later
-    encoder.write_u16(0);
+/// Writes all attributes to the encoder.
+fn write_attributes(encoder: &mut Encoder, attributes: &[(u16, Attribute)]) {
+    encoder.write_u16(attributes.len() as u16);
+
+    for &(name_index, ref attribute) in attributes {
+        use Attribute::*;
+
+        match *attribute {
+            Unknown(ref content) => {
+                encoder.write_u16(name_index);
+                encoder.write_u32(content.len() as u32);
+                encoder.write_bytes(&content);
+            }
+
+            _ => unimplemented!(),
+        }
+    }
 }
